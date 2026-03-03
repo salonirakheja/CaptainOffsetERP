@@ -1,6 +1,8 @@
 import { getCustomerDropdown } from '@/lib/db/customers';
 import NewJobForm from './NewJobForm';
 
+export const dynamic = 'force-dynamic';
+
 export default async function NewJobPage() {
   const customers = await getCustomerDropdown();
 

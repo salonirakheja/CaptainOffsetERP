@@ -11,7 +11,12 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const people = await getActivePeople();
+  let people: { id: number; name: string; role: string }[] = [];
+  try {
+    people = await getActivePeople();
+  } catch {
+    // DB unavailable at build time — SessionSelector will show empty list
+  }
 
   return (
     <html lang="en">
