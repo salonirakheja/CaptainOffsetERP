@@ -1,101 +1,151 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { getDashboardStats } from '@/lib/db/dashboard';
+import { getActiveJobs } from '@/lib/db/jobs';
+import { getLowStockMaterials } from '@/lib/db/materials';
+import { getRecentStockEntries } from '@/lib/db/stock-ledger';
+import { getRecentDispatches } from '@/lib/db/dispatch';
+import SummaryCard from '@/components/ui/SummaryCard';
+import StatusBadge from '@/components/ui/StatusBadge';
+import { formatJobId, formatDate, formatDateTime } from '@/types';
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+export default async function Dashboard() {
+  const [stats, activeJobs, lowStock, recentStock, recentDispatches] = await Promise.all([
+    getDashboardStats(),
+    getActiveJobs(),
+    getLowStockMaterials(),
+    getRecentStockEntries(10),
+    getRecentDispatches(5),
+  ]);
+
+  const jobsByStatus: Record<string, typeof activeJobs> = {};
+  for (const job of activeJobs) {
+    if (!jobsByStatus[job.status]) jobsByStatus[job.status] = [];
+    jobsByStatus[job.status].push(job);
+  }
+
+  const statusOrder = ['pending', 'design', 'ctp_plate', 'printing', 'finishing', 'uv_laminate', 'corrugation', 'pasting', 'ready'];
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <div className="flex gap-3">
+          <Link href="/jobs/new" className="bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">
+            + New Job
+          </Link>
+          <Link href="/inventory?action=inward" className="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+            + Log Material Inward
+          </Link>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <SummaryCard title="Active Jobs" value={stats.activeJobs} icon="📋" />
+        <SummaryCard title="Due Today" value={stats.jobsDueToday} icon="⏰" />
+        <SummaryCard title="Low Stock Items" value={lowStock.length} icon="📦" color={lowStock.length > 0 ? 'bg-red-50' : 'bg-white'} />
+        <SummaryCard title="Dispatches Today" value={stats.dispatchesToday} icon="🚚" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-6">
+        {/* Active Jobs by Status */}
+        <div className="col-span-2">
+          <h2 className="text-lg font-semibold mb-3">Active Jobs</h2>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {statusOrder.map((status) => {
+              const jobs = jobsByStatus[status];
+              if (!jobs || jobs.length === 0) return null;
+              return (
+                <div key={status} className="border-b border-gray-100 last:border-0">
+                  <div className="px-4 py-2 bg-gray-50 flex items-center gap-2">
+                    <StatusBadge status={status} />
+                    <span className="text-sm text-gray-500">({jobs.length})</span>
+                  </div>
+                  {jobs.map((job) => (
+                    <Link
+                      key={job.id}
+                      href={`/jobs/${job.id}`}
+                      className="flex items-center gap-4 px-4 py-2.5 hover:bg-gray-50 transition-colors border-t border-gray-50"
+                    >
+                      <span className="text-sm font-mono font-medium text-accent">{formatJobId(job.id)}</span>
+                      <span className="text-sm flex-1">{job.description || job.customer.name}</span>
+                      <span className="text-xs text-gray-400">{job.customer.name}</span>
+                      {job.dueDate && (
+                        <span className="text-xs text-gray-400">{formatDate(job.dueDate)}</span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              );
+            })}
+            {activeJobs.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-8">No active jobs</p>
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Low Stock Alerts */}
+          {lowStock.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold mb-3">Low Stock Alerts</h2>
+              <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
+                {lowStock.map((m) => (
+                  <Link
+                    key={m.id}
+                    href={`/inventory/${m.id}`}
+                    className="flex items-center justify-between px-4 py-2.5 border-b border-red-50 last:border-0 hover:bg-red-50 transition-colors"
+                  >
+                    <span className="text-sm">{m.name}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${m.stockStatus === 'critical' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      {m.currentStock} {m.unit}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Activity */}
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Recent Stock Activity</h2>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              {recentStock.map((entry) => (
+                <div key={entry.id} className="flex items-center gap-2 px-4 py-2 border-b border-gray-50 last:border-0 text-sm">
+                  <span className={`w-1.5 h-1.5 rounded-full ${entry.entryType === 'inward' ? 'bg-green-500' : entry.entryType === 'wastage' ? 'bg-red-500' : 'bg-blue-500'}`}></span>
+                  <span className="flex-1 truncate">{entry.material.name}</span>
+                  <span className={`text-xs font-medium ${entry.entryType === 'inward' ? 'text-green-600' : 'text-red-600'}`}>
+                    {entry.entryType === 'inward' ? '+' : '-'}{entry.quantity}
+                  </span>
+                </div>
+              ))}
+              {recentStock.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">No entries yet</p>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Dispatches */}
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Recent Dispatches</h2>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              {recentDispatches.map((d) => (
+                <div key={d.id} className="flex items-center gap-2 px-4 py-2 border-b border-gray-50 last:border-0 text-sm">
+                  <span className="font-mono text-accent text-xs">{formatJobId(d.job.id)}</span>
+                  <span className="flex-1 truncate">{d.customer.name}</span>
+                  <span className="text-xs text-gray-400">{formatDate(d.dispatchDate)}</span>
+                </div>
+              ))}
+              {recentDispatches.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">No dispatches yet</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

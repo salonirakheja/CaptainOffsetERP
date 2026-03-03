@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Customer {
+  id        Int        @id @default(autoincrement())
+  name      String
+  phone     String     @default("")
+  email     String     @default("")
+  address   String     @default("")
+  createdAt DateTime   @default(now()) @map("created_at")
+  jobs      Job[]
+  dispatches Dispatch[]
+
+  @@map("customers")
+}
+
+model Job {
+  id          Int       @id @default(autoincrement())
+  customerId  Int       @map("customer_id")
+  orderType   String    @map("order_type")
+  productType String    @map("product_type")
+  description String    @default("")
+  paperType   String    @default("") @map("paper_type")
+  quantity    Float     @default(0)
+  unit        String    @default("pieces")
+  dueDate     DateTime? @map("due_date")
+  status      String    @default("pending")
+  notes       String    @default("")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  customer         Customer          @relation(fields: [customerId], references: [id])
+  stockLedgerEntries StockLedger[]
+  productionStages ProductionStage[]
+  dispatches       Dispatch[]
+
+  @@map("jobs")
+}
+
+model Material {
+  id           Int      @id @default(autoincrement())
+  name         String
+  category     String
+  unit         String
+  reorderLevel Float    @default(0) @map("reorder_level")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  stockLedgerEntries StockLedger[]
+
+  @@map("materials")
+}
+
+model StockLedger {
+  id            Int      @id @default(autoincrement())
+  materialId    Int      @map("material_id")
+  entryType     String   @map("entry_type")
+  quantity      Float
+  jobId         Int?     @map("job_id")
+  referenceNote String   @default("") @map("reference_note")
+  loggedBy      String   @default("") @map("logged_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  material Material @relation(fields: [materialId], references: [id])
+  job      Job?     @relation(fields: [jobId], references: [id])
+
+  @@map("stock_ledger")
+}
+
+model ProductionStage {
+  id          Int       @id @default(autoincrement())
+  jobId       Int       @map("job_id")
+  stageName   String    @map("stage_name")
+  completedAt DateTime? @map("completed_at")
+  completedBy String    @default("") @map("completed_by")
+  notes       String    @default("")
+
+  job Job @relation(fields: [jobId], references: [id])
+
+  @@map("production_stages")
+}
+
+model Dispatch {
+  id                 Int      @id @default(autoincrement())
+  jobId              Int      @map("job_id")
+  customerId         Int      @map("customer_id")
+  quantityDispatched Float    @map("quantity_dispatched")
+  unit               String   @default("pieces")
+  dispatchDate       DateTime @default(now()) @map("dispatch_date")
+  vehicleOrCourier   String   @default("") @map("vehicle_or_courier")
+  receivedBy         String   @default("") @map("received_by")
+  notes              String   @default("")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  job      Job      @relation(fields: [jobId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@map("dispatches")
+}
+
+model Person {
+  id     Int     @id @default(autoincrement())
+  name   String
+  role   String
+  active Boolean @default(true)
+
+  @@map("people")
+}
