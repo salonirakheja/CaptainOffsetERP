@@ -107,11 +107,15 @@ export async function updateStockEntryAction(
   return { success: true };
 }
 
-export async function deleteStockEntryAction(entryId: number, jobId: number) {
-  await deleteStockEntry(entryId);
+export async function deleteStockEntryAction(entryId: number, jobId: number): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await deleteStockEntry(entryId);
 
-  revalidatePath(`/jobs/${jobId}`);
-  revalidatePath('/inventory');
-  revalidatePath('/');
-  return { success: true };
+    revalidatePath(`/jobs/${jobId}`);
+    revalidatePath('/inventory');
+    revalidatePath('/');
+    return { success: true };
+  } catch {
+    return { error: 'Failed to delete entry' };
+  }
 }
