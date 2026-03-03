@@ -21,7 +21,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <div className="grid grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div>
             <span className="text-gray-500">Phone</span>
             <p className="font-medium mt-0.5">{customer.phone || '—'}</p>
@@ -38,7 +38,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
       </div>
 
       <h2 className="text-lg font-semibold mb-3">Jobs ({customer.jobs.length})</h2>
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto mb-6">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
@@ -69,7 +69,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
       </div>
 
       <h2 className="text-lg font-semibold mb-3">Dispatch History ({customer.dispatches.length})</h2>
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">

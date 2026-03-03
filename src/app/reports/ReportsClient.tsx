@@ -69,7 +69,7 @@ export default function ReportsClient({ customers, materials }: { customers: Cus
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex flex-wrap gap-2 md:gap-3 items-end">
           <div>
             <label className="block text-xs text-gray-500 mb-1">From</label>
             <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
@@ -119,7 +119,7 @@ export default function ReportsClient({ customers, materials }: { customers: Cus
       </div>
 
       {results !== null && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden print-full">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto print-full">
           <div className="px-4 py-3 bg-gray-50 border-b text-sm text-gray-500">
             {results.length} result(s) found
           </div>

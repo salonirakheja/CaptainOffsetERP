@@ -65,13 +65,13 @@ export default function JobsFilter({ currentStatus, currentProductType, currentO
         <option value="job_work">Job Work (A)</option>
         <option value="co_purchase">CO Purchase (B)</option>
       </select>
-      <form onSubmit={handleSearch} className="flex gap-2 ml-auto">
+      <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-auto md:ml-auto">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search customer or job..."
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-60"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full md:w-60"
         />
         <button type="submit" className="bg-gray-100 border border-gray-300 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">
           Search

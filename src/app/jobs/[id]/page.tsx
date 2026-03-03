@@ -38,7 +38,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
       {/* Job Info */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <div className="grid grid-cols-3 gap-y-4 gap-x-8 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-8 text-sm">
           <div>
             <span className="text-gray-500">Customer</span>
             <p className="font-medium mt-0.5">{job.customer.name}</p>
@@ -64,13 +64,13 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             <p className="font-medium mt-0.5">{formatDate(job.dueDate)}</p>
           </div>
           {job.description && (
-            <div className="col-span-3">
+            <div className="sm:col-span-2 md:col-span-3">
               <span className="text-gray-500">Description</span>
               <p className="font-medium mt-0.5">{job.description}</p>
             </div>
           )}
           {job.notes && (
-            <div className="col-span-3">
+            <div className="sm:col-span-2 md:col-span-3">
               <span className="text-gray-500">Notes</span>
               <p className="font-medium mt-0.5">{job.notes}</p>
             </div>

@@ -105,8 +105,8 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center gap-0">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 overflow-x-auto">
+        <div className="flex items-center gap-0 min-w-[600px] md:min-w-0">
           {stages.map((stage, i) => {
             const isCompleted = completedStages.includes(stage) || stages.indexOf(stage) < currentStageIndex;
             const isCurrent = stage === currentStatus;
@@ -134,7 +134,7 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
                       <p className="text-[10px] text-gray-400">{record.completedBy}</p>
                       <button
                         onClick={() => openEditStage(record)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-accent"
+                        className="md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-accent"
                         title="Edit stage details"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

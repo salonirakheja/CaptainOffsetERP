@@ -23,7 +23,7 @@ export default async function StockLedgerPage({ params }: { params: { id: string
         <span className="text-sm text-gray-400 capitalize">{material.category} &middot; {material.unit}</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Current Stock</p>
           <p className="text-2xl font-bold">{ledger.length > 0 ? ledger[ledger.length - 1].runningBalance : 0} {material.unit}</p>
@@ -39,7 +39,7 @@ export default async function StockLedgerPage({ params }: { params: { id: string
       </div>
 
       <h2 className="text-lg font-semibold mb-3">Stock Ledger</h2>
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wider">

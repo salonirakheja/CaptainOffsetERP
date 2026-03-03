@@ -42,16 +42,16 @@ export default async function Dashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <SummaryCard title="Active Jobs" value={stats.activeJobs} icon="📋" />
         <SummaryCard title="Due Today" value={stats.jobsDueToday} icon="⏰" />
         <SummaryCard title="Low Stock Items" value={lowStock.length} icon="📦" color={lowStock.length > 0 ? 'bg-red-50' : 'bg-white'} />
         <SummaryCard title="Dispatches Today" value={stats.dispatchesToday} icon="🚚" />
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Active Jobs by Status */}
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <h2 className="text-lg font-semibold mb-3">Active Jobs</h2>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {statusOrder.map((status) => {

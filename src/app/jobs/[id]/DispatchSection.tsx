@@ -60,7 +60,7 @@ export default function DispatchSection({ job, dispatches, people: _people }: { 
       </div>
 
       {dispatches.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
@@ -91,7 +91,7 @@ export default function DispatchSection({ job, dispatches, people: _people }: { 
           <p className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
             Customer: <strong>{job.customer.name}</strong> &middot; Qty: {job.quantity} {job.unit}
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Quantity Dispatched *</label>
               <input type="number" name="quantityDispatched" step="any" required defaultValue={job.quantity} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />

@@ -101,7 +101,7 @@ export default function MaterialsUsedTable({
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
@@ -128,7 +128,7 @@ export default function MaterialsUsedTable({
                 <td className="px-4 py-2">{formatDateTime(entry.createdAt)}</td>
                 <td className="px-4 py-2 text-gray-400">{entry.referenceNote}</td>
                 <td className="px-4 py-2">
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => openEdit(entry)}
                       className="text-gray-400 hover:text-accent transition-colors"
@@ -193,7 +193,7 @@ export default function MaterialsUsedTable({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Quantity *</label>
               <input
