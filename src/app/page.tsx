@@ -6,7 +6,7 @@ import { getRecentStockEntries } from '@/lib/db/stock-ledger';
 import { getRecentDispatches } from '@/lib/db/dispatch';
 import SummaryCard from '@/components/ui/SummaryCard';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { formatJobId, formatDate, formatDateTime } from '@/types';
+import { formatJobId, formatDate } from '@/types';
 
 export const dynamic = 'force-dynamic';
 

@@ -33,8 +33,8 @@ interface Customer { id: number; name: string; }
 export default function DispatchPageClient({
   dispatches,
   readyJobs,
-  people,
-  customers,
+  people: _people,
+  customers: _customers,
 }: {
   dispatches: DispatchRecord[];
   readyJobs: ReadyJob[];

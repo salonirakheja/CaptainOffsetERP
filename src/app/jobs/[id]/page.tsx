@@ -4,7 +4,7 @@ import { getJobById } from '@/lib/db/jobs';
 import { getAllMaterials } from '@/lib/db/materials';
 import { getActivePeople } from '@/lib/db/people';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { formatJobId, formatDate, formatDateTime, PRINTING_STAGES, BOX_STAGES, STAGE_LABELS } from '@/types';
+import { formatJobId, formatDate, formatDateTime, PRINTING_STAGES, BOX_STAGES } from '@/types';
 import ProductionPipeline from './ProductionPipeline';
 import LogMaterialModal from './LogMaterialModal';
 import MaterialsUsedTable from './MaterialsUsedTable';

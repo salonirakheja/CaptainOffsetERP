@@ -26,7 +26,7 @@ interface DispatchRecord {
 
 interface Person { id: number; name: string; role: string; }
 
-export default function DispatchSection({ job, dispatches, people }: { job: Job; dispatches: DispatchRecord[]; people: Person[] }) {
+export default function DispatchSection({ job, dispatches, people: _people }: { job: Job; dispatches: DispatchRecord[]; people: Person[] }) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 

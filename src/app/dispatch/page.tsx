@@ -2,7 +2,7 @@ import { getAllDispatches } from '@/lib/db/dispatch';
 import { getReadyJobs } from '@/lib/db/jobs';
 import { getActivePeople } from '@/lib/db/people';
 import { getCustomerDropdown } from '@/lib/db/customers';
-import { formatJobId, formatDate } from '@/types';
+import '@/types';
 import DispatchPageClient from './DispatchPageClient';
 
 export const dynamic = 'force-dynamic';
