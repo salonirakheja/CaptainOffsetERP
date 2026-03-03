@@ -28,12 +28,15 @@ const ROLE_LABELS: Record<string, string> = {
 export default function SessionSelector({ people, factories }: { people: Person[]; factories: Factory[] }) {
   const [show, setShow] = useState(false);
   const [current, setCurrent] = useState<SessionData | null>(null);
-  const [step, setStep] = useState<'factory' | 'person' | 'pin'>('factory');
+  const [step, setStep] = useState<'factory' | 'person' | 'pin' | 'change_pin'>('factory');
   const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [pin, setPin] = useState(['', '', '', '']);
   const [error, setError] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [changePinStep, setChangePinStep] = useState<'current' | 'new' | 'confirm'>('current');
+  const [currentPinValue, setCurrentPinValue] = useState('');
+  const [newPinValue, setNewPinValue] = useState('');
   const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -131,6 +134,84 @@ export default function SessionSelector({ people, factories }: { people: Person[
       setPin(['', '', '', '']);
     }
 
+    setVerifying(false);
+  }
+
+  function openChangePin() {
+    setStep('change_pin');
+    setChangePinStep('current');
+    setCurrentPinValue('');
+    setNewPinValue('');
+    setPin(['', '', '', '']);
+    setError('');
+    setTimeout(() => pinRefs.current[0]?.focus(), 50);
+  }
+
+  function handleChangePinDigit(index: number, value: string) {
+    if (!/^\d*$/.test(value)) return;
+    const newPin = [...pin];
+    newPin[index] = value.slice(-1);
+    setPin(newPin);
+    setError('');
+
+    if (value && index < 3) {
+      pinRefs.current[index + 1]?.focus();
+    }
+
+    if (index === 3 && value) {
+      const fullPin = [...newPin.slice(0, 3), value.slice(-1)].join('');
+      if (fullPin.length === 4) {
+        if (changePinStep === 'current') {
+          setCurrentPinValue(fullPin);
+          setChangePinStep('new');
+          setPin(['', '', '', '']);
+          setTimeout(() => pinRefs.current[0]?.focus(), 50);
+        } else if (changePinStep === 'new') {
+          setNewPinValue(fullPin);
+          setChangePinStep('confirm');
+          setPin(['', '', '', '']);
+          setTimeout(() => pinRefs.current[0]?.focus(), 50);
+        } else if (changePinStep === 'confirm') {
+          if (fullPin !== newPinValue) {
+            setError('PINs do not match. Try again.');
+            setChangePinStep('new');
+            setNewPinValue('');
+            setPin(['', '', '', '']);
+            setTimeout(() => pinRefs.current[0]?.focus(), 50);
+          } else {
+            submitPinChange(currentPinValue, fullPin);
+          }
+        }
+      }
+    }
+  }
+
+  async function submitPinChange(oldPin: string, newPin: string) {
+    if (!current) return;
+    setVerifying(true);
+    try {
+      const res = await fetch('/api/auth/change-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personId: current.personId, currentPin: oldPin, newPin }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setError('');
+        setShow(false);
+        // Brief visual confirmation
+        alert('PIN changed successfully!');
+      } else {
+        setError(data.error || 'Failed to change PIN');
+        setChangePinStep('current');
+        setCurrentPinValue('');
+        setNewPinValue('');
+        setPin(['', '', '', '']);
+        setTimeout(() => pinRefs.current[0]?.focus(), 50);
+      }
+    } catch {
+      setError('Something went wrong. Try again.');
+    }
     setVerifying(false);
   }
 
@@ -243,8 +324,47 @@ export default function SessionSelector({ people, factories }: { people: Person[
           </>
         )}
 
-        {/* Logout option if already logged in */}
-        {current && (
+        {/* Step 4: Change PIN */}
+        {step === 'change_pin' && (
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              <button onClick={() => { setStep('factory'); setError(''); }} className="text-gray-400 hover:text-gray-600">&larr;</button>
+              <h2 className="text-lg font-semibold">Change PIN</h2>
+            </div>
+            <p className="text-sm text-gray-500 mb-6">
+              {changePinStep === 'current' && 'Enter your current PIN'}
+              {changePinStep === 'new' && 'Enter your new PIN'}
+              {changePinStep === 'confirm' && 'Confirm your new PIN'}
+            </p>
+            <div className="flex justify-center gap-3 mb-4">
+              {pin.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => { pinRefs.current[i] = el; }}
+                  type="password"
+                  inputMode="numeric"
+                  value={digit}
+                  onChange={(e) => handleChangePinDigit(i, e.target.value)}
+                  onKeyDown={(e) => handlePinKeyDown(i, e)}
+                  className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-accent focus:outline-none"
+                  maxLength={1}
+                  disabled={verifying}
+                />
+              ))}
+            </div>
+            {/* Step indicator */}
+            <div className="flex justify-center gap-2 mb-3">
+              {['current', 'new', 'confirm'].map((s) => (
+                <div key={s} className={`w-2 h-2 rounded-full ${changePinStep === s ? 'bg-accent' : 'bg-gray-200'}`} />
+              ))}
+            </div>
+            {error && <p className="text-red-500 text-sm text-center mb-3">{error}</p>}
+            {verifying && <p className="text-gray-400 text-sm text-center">Saving...</p>}
+          </>
+        )}
+
+        {/* Footer: Cancel / Change PIN / Log Out */}
+        {current && step !== 'change_pin' && (
           <div className="mt-4 pt-4 border-t flex justify-between items-center">
             <button
               onClick={() => setShow(false)}
@@ -252,11 +372,29 @@ export default function SessionSelector({ people, factories }: { people: Person[
             >
               Cancel
             </button>
+            <div className="flex gap-3">
+              <button
+                onClick={openChangePin}
+                className="text-sm text-accent hover:text-orange-700 font-medium"
+              >
+                Change PIN
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-red-500 hover:text-red-700 font-medium"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        )}
+        {current && step === 'change_pin' && (
+          <div className="mt-4 pt-4 border-t">
             <button
-              onClick={handleLogout}
-              className="text-sm text-red-500 hover:text-red-700 font-medium"
+              onClick={() => setShow(false)}
+              className="text-sm text-gray-500 hover:text-gray-700"
             >
-              Log Out
+              Cancel
             </button>
           </div>
         )}
