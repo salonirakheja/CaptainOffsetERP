@@ -32,13 +32,25 @@ export default function Sidebar() {
   const [role, setRole] = useState<string>('management');
 
   useEffect(() => {
-    const session = getSession();
-    if (session?.role) {
-      setRole(session.role);
+    function syncRole() {
+      const session = getSession();
+      setRole(session?.role || 'management');
     }
+    syncRole();
+    // Re-sync when another tab or the SessionSelector updates localStorage
+    window.addEventListener('storage', syncRole);
+    // Also poll briefly to catch same-tab localStorage writes
+    const interval = setInterval(syncRole, 1000);
+    return () => {
+      window.removeEventListener('storage', syncRole);
+      clearInterval(interval);
+    };
   }, []);
 
-  const visibleItems = navItems.filter((item) => item.roles.includes(role));
+  // Show all items if no session yet or if management role
+  const visibleItems = role === 'management'
+    ? navItems
+    : navItems.filter((item) => item.roles.includes(role));
 
   return (
     <>
