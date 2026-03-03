@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { createDispatchAction } from '@/lib/actions/dispatch-actions';
+import { getSession } from '@/lib/session';
 import Modal from '@/components/ui/Modal';
 import { formatJobId, formatDate } from '@/types';
 
@@ -19,14 +20,14 @@ interface DispatchRecord {
   quantityDispatched: number;
   unit: string;
   dispatchDate: Date;
+  challanNo: string;
   vehicleOrCourier: string;
   receivedBy: string;
+  dispatchedBy: { id: number; name: string } | null;
   notes: string;
 }
 
-interface Person { id: number; name: string; role: string; }
-
-export default function DispatchSection({ job, dispatches, people: _people }: { job: Job; dispatches: DispatchRecord[]; people: Person[] }) {
+export default function DispatchSection({ job, dispatches }: { job: Job; dispatches: DispatchRecord[] }) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,6 +37,11 @@ export default function DispatchSection({ job, dispatches, people: _people }: { 
     const fd = new FormData(e.currentTarget);
     fd.set('jobId', String(job.id));
     fd.set('customerId', String(job.customerId));
+    const session = getSession();
+    if (session) {
+      fd.set('factoryId', String(session.factoryId));
+      fd.set('dispatchedById', String(session.personId));
+    }
     const result = await createDispatchAction(fd);
     if (result.error) {
       toast.error(result.error);
@@ -64,20 +70,24 @@ export default function DispatchSection({ job, dispatches, people: _people }: { 
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                <th className="px-4 py-2 font-medium">Challan No</th>
                 <th className="px-4 py-2 font-medium">Quantity</th>
                 <th className="px-4 py-2 font-medium">Date</th>
                 <th className="px-4 py-2 font-medium">Vehicle/Courier</th>
                 <th className="px-4 py-2 font-medium">Received By</th>
+                <th className="px-4 py-2 font-medium">Dispatched By</th>
                 <th className="px-4 py-2 font-medium">Notes</th>
               </tr>
             </thead>
             <tbody>
               {dispatches.map((d) => (
                 <tr key={d.id} className="border-t border-gray-100">
+                  <td className="px-4 py-2 font-mono text-xs">{d.challanNo || '—'}</td>
                   <td className="px-4 py-2">{d.quantityDispatched} {d.unit}</td>
                   <td className="px-4 py-2">{formatDate(d.dispatchDate)}</td>
                   <td className="px-4 py-2">{d.vehicleOrCourier || '—'}</td>
                   <td className="px-4 py-2">{d.receivedBy || '—'}</td>
+                  <td className="px-4 py-2">{d.dispatchedBy?.name || '—'}</td>
                   <td className="px-4 py-2 text-gray-400">{d.notes || '—'}</td>
                 </tr>
               ))}

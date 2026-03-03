@@ -5,7 +5,17 @@ import { useState } from 'react';
 interface Customer { id: number; name: string; }
 interface Material { id: number; name: string; unit: string; }
 
-type ReportType = 'jobs' | 'stock' | 'dispatch';
+type ReportType = 'jobs' | 'stock' | 'dispatch' | 'daily_production' | 'material_consumption' | 'outstanding_payments' | 'person_activity';
+
+const REPORT_LABELS: Record<ReportType, string> = {
+  jobs: 'Jobs Report',
+  stock: 'Stock Movement',
+  dispatch: 'Dispatch Report',
+  daily_production: 'Daily Production',
+  material_consumption: 'Material Consumption',
+  outstanding_payments: 'Outstanding Payments',
+  person_activity: 'Person Activity',
+};
 
 interface ReportRow {
   [key: string]: string | number;
@@ -42,6 +52,10 @@ export default function ReportsClient({ customers, materials }: { customers: Cus
   }
 
   const columns = results && results.length > 0 ? Object.keys(results[0]) : [];
+  const showDateFilter = !['outstanding_payments', 'daily_production', 'person_activity'].includes(reportType);
+  const showCustomerFilter = ['jobs', 'dispatch'].includes(reportType);
+  const showMaterialFilter = ['stock', 'material_consumption'].includes(reportType);
+  const showStatusFilter = reportType === 'jobs';
 
   return (
     <div>
@@ -55,31 +69,35 @@ export default function ReportsClient({ customers, materials }: { customers: Cus
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 no-print">
-        <div className="flex gap-4 mb-4">
-          {(['jobs', 'stock', 'dispatch'] as const).map((rt) => (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {(Object.keys(REPORT_LABELS) as ReportType[]).map((rt) => (
             <button
               key={rt}
               onClick={() => { setReportType(rt); setResults(null); }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 reportType === rt ? 'bg-accent text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {rt === 'jobs' ? 'Jobs Report' : rt === 'stock' ? 'Stock Movement' : 'Dispatch Report'}
+              {REPORT_LABELS[rt]}
             </button>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-2 md:gap-3 items-end">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">From</label>
-            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">To</label>
-            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-          </div>
+          {showDateFilter && (
+            <>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">From</label>
+                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">To</label>
+                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+            </>
+          )}
 
-          {(reportType === 'jobs' || reportType === 'dispatch') && (
+          {showCustomerFilter && (
             <div>
               <label className="block text-xs text-gray-500 mb-1">Customer</label>
               <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
@@ -89,7 +107,7 @@ export default function ReportsClient({ customers, materials }: { customers: Cus
             </div>
           )}
 
-          {reportType === 'jobs' && (
+          {showStatusFilter && (
             <div>
               <label className="block text-xs text-gray-500 mb-1">Status</label>
               <select value={status} onChange={(e) => setStatus(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
@@ -102,7 +120,7 @@ export default function ReportsClient({ customers, materials }: { customers: Cus
             </div>
           )}
 
-          {reportType === 'stock' && (
+          {showMaterialFilter && (
             <div>
               <label className="block text-xs text-gray-500 mb-1">Material</label>
               <select value={materialId} onChange={(e) => setMaterialId(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">

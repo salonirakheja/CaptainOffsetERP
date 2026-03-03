@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { logMaterialForJobAction } from '@/lib/actions/production-actions';
+import { getPersonIdFromSession } from '@/lib/session';
 import Modal from '@/components/ui/Modal';
 
 interface Material { id: number; name: string; unit: string; currentStock: number; }
@@ -15,24 +16,24 @@ export default function LogMaterialModal({ jobId, materials, people }: { jobId: 
   const [entryType, setEntryType] = useState<'outward' | 'wastage'>('outward');
   const [quantity, setQuantity] = useState('');
   const [notes, setNotes] = useState('');
-  const [loggedBy, setLoggedBy] = useState('');
+  const [loggedById, setLoggedById] = useState<number>(0);
 
   function openModal() {
     setMaterialId(0);
     setEntryType('outward');
     setQuantity('');
     setNotes('');
-    setLoggedBy(typeof window !== 'undefined' ? localStorage.getItem('co_user') || '' : '');
+    setLoggedById(getPersonIdFromSession() || 0);
     setOpen(true);
   }
 
   async function handleSubmit() {
     if (!materialId) { toast.error('Please select a material'); return; }
     if (!quantity || parseFloat(quantity) <= 0) { toast.error('Please enter a valid quantity'); return; }
-    if (!loggedBy) { toast.error('Please select who is logging this'); return; }
+    if (!loggedById) { toast.error('Please select who is logging this'); return; }
 
     setSubmitting(true);
-    const result = await logMaterialForJobAction(jobId, materialId, entryType, parseFloat(quantity), notes, loggedBy);
+    const result = await logMaterialForJobAction(jobId, materialId, entryType, parseFloat(quantity), notes, loggedById);
     if (result.error) {
       toast.error(result.error);
     } else {
@@ -122,13 +123,13 @@ export default function LogMaterialModal({ jobId, materials, people }: { jobId: 
           <div>
             <label className="block text-sm font-medium mb-1">Logged By *</label>
             <select
-              value={loggedBy}
-              onChange={(e) => setLoggedBy(e.target.value)}
+              value={loggedById}
+              onChange={(e) => setLoggedById(parseInt(e.target.value))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             >
-              <option value="">Select person...</option>
+              <option value={0}>Select person...</option>
               {people.map((p) => (
-                <option key={p.id} value={p.name}>{p.name} ({p.role})</option>
+                <option key={p.id} value={p.id}>{p.name} ({p.role})</option>
               ))}
             </select>
           </div>

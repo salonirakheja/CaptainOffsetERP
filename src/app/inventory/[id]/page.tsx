@@ -26,7 +26,7 @@ export default async function StockLedgerPage({ params }: { params: { id: string
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Current Stock</p>
-          <p className="text-2xl font-bold">{ledger.length > 0 ? ledger[ledger.length - 1].runningBalance : 0} {material.unit}</p>
+          <p className="text-2xl font-bold">{material.currentStock} {material.unit}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Reorder Level</p>
@@ -71,7 +71,7 @@ export default async function StockLedgerPage({ params }: { params: { id: string
                     {entry.entryType === 'inward' || entry.entryType === 'adjustment' ? '+' : '-'}{entry.quantity}
                   </span>
                 </td>
-                <td className="px-4 py-2 font-medium">{entry.runningBalance}</td>
+                <td className="px-4 py-2 font-medium">{entry.balanceAfter}</td>
                 <td className="px-4 py-2">
                   {entry.job ? (
                     <Link href={`/jobs/${entry.job.id}`} className="text-accent hover:underline font-mono text-xs">
@@ -79,7 +79,7 @@ export default async function StockLedgerPage({ params }: { params: { id: string
                     </Link>
                   ) : '—'}
                 </td>
-                <td className="px-4 py-2">{entry.loggedBy || '—'}</td>
+                <td className="px-4 py-2">{entry.loggedBy?.name || '—'}</td>
                 <td className="px-4 py-2 text-gray-400">{entry.referenceNote || '—'}</td>
               </tr>
             ))}

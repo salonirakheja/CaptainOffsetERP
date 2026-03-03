@@ -1,23 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { getSession } from '@/lib/session';
 
-const navItems = [
-  { href: '/', label: 'Dashboard', icon: '📊' },
-  { href: '/jobs', label: 'Jobs', icon: '📋' },
-  { href: '/inventory', label: 'Inventory', icon: '📦' },
-  { href: '/dispatch', label: 'Dispatch', icon: '🚚' },
-  { href: '/customers', label: 'Customers', icon: '👥' },
-  { href: '/people', label: 'People', icon: '🏭' },
-  { href: '/reports', label: 'Reports', icon: '📈' },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+  roles: string[];
+}
+
+const navItems: NavItem[] = [
+  { href: '/', label: 'Dashboard', icon: '📊', roles: ['management', 'production', 'store', 'dispatch', 'design', 'security'] },
+  { href: '/jobs', label: 'Jobs', icon: '📋', roles: ['management', 'production', 'store', 'design'] },
+  { href: '/inventory', label: 'Inventory', icon: '📦', roles: ['management', 'store', 'production'] },
+  { href: '/dispatch', label: 'Dispatch', icon: '🚚', roles: ['management', 'dispatch', 'store', 'security'] },
+  { href: '/gate-log', label: 'Gate Log', icon: '🚧', roles: ['management', 'security', 'dispatch'] },
+  { href: '/quotations', label: 'Quotations', icon: '📝', roles: ['management'] },
+  { href: '/invoices', label: 'Invoices', icon: '🧾', roles: ['management'] },
+  { href: '/customers', label: 'Customers', icon: '👥', roles: ['management'] },
+  { href: '/people', label: 'People', icon: '🏭', roles: ['management'] },
+  { href: '/reports', label: 'Reports', icon: '📈', roles: ['management'] },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [role, setRole] = useState<string>('management');
+
+  useEffect(() => {
+    const session = getSession();
+    if (session?.role) {
+      setRole(session.role);
+    }
+  }, []);
+
+  const visibleItems = navItems.filter((item) => item.roles.includes(role));
 
   return (
     <>
@@ -51,7 +72,7 @@ export default function Sidebar() {
           <p className="text-slate-400 text-xs mt-0.5">Factory ERP</p>
         </div>
         <nav className="flex-1 py-4">
-          {navItems.map((item) => {
+          {visibleItems.map((item) => {
             const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             return (
               <Link
@@ -72,7 +93,7 @@ export default function Sidebar() {
           })}
         </nav>
         <div className="px-5 py-4 border-t border-white/10">
-          <p className="text-slate-500 text-xs">v1.0 &middot; Captain Offset ERP</p>
+          <p className="text-slate-500 text-xs">v2.0 &middot; Captain Offset ERP</p>
         </div>
       </aside>
     </>

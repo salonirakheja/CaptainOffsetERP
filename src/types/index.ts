@@ -4,6 +4,12 @@ export type JobStatus = 'pending' | 'design' | 'ctp_plate' | 'printing' | 'finis
 export type MaterialCategory = 'paper' | 'ink' | 'chemical' | 'lamination' | 'flute' | 'other';
 export type EntryType = 'inward' | 'outward' | 'wastage' | 'adjustment';
 export type PersonRole = 'security' | 'store' | 'production' | 'dispatch' | 'design' | 'management';
+export type Priority = 'urgent' | 'normal' | 'low';
+export type FinishType = 'uv' | 'varnish' | 'laminate_gloss' | 'laminate_matt' | 'foil' | 'emboss' | 'none';
+export type GateEntryType = 'visitor' | 'vehicle_in' | 'vehicle_out' | 'material_in' | 'material_out' | 'worker';
+export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+export type InvoiceStatus = 'unpaid' | 'partial' | 'paid' | 'overdue' | 'cancelled';
+export type PaymentMode = 'cash' | 'upi' | 'neft' | 'cheque' | 'other';
 
 export const PRINTING_STAGES = ['pending', 'design', 'ctp_plate', 'printing', 'finishing', 'ready', 'dispatched'] as const;
 export const BOX_STAGES = ['pending', 'printing', 'uv_laminate', 'corrugation', 'pasting', 'ready', 'dispatched'] as const;
@@ -35,8 +41,29 @@ export const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800',
 };
 
+export const PRIORITY_COLORS: Record<string, string> = {
+  urgent: 'bg-red-100 text-red-700',
+  normal: 'bg-blue-100 text-blue-700',
+  low: 'bg-gray-100 text-gray-600',
+};
+
 export function formatJobId(id: number): string {
   return `CO-${String(id).padStart(4, '0')}`;
+}
+
+export function formatChallanNo(seq: number): string {
+  const year = new Date().getFullYear();
+  return `DC-${year}-${String(seq).padStart(4, '0')}`;
+}
+
+export function formatQuotationNo(seq: number): string {
+  const year = new Date().getFullYear();
+  return `QT-${year}-${String(seq).padStart(4, '0')}`;
+}
+
+export function formatInvoiceNo(seq: number): string {
+  const year = new Date().getFullYear();
+  return `INV-${year}-${String(seq).padStart(4, '0')}`;
 }
 
 export function formatDate(date: Date | string | null): string {

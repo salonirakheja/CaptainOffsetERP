@@ -18,6 +18,7 @@ export async function getAllDispatches(filters?: {
     include: {
       job: { select: { id: true, description: true, productType: true } },
       customer: { select: { id: true, name: true } },
+      dispatchedBy: { select: { id: true, name: true } },
     },
     orderBy: { dispatchDate: 'desc' },
   });
@@ -26,14 +27,34 @@ export async function getAllDispatches(filters?: {
 export async function createDispatch(data: {
   jobId: number;
   customerId: number;
+  factoryId: number;
   quantityDispatched: number;
   unit: string;
   dispatchDate: Date;
   vehicleOrCourier: string;
   receivedBy: string;
+  dispatchedById?: number;
   notes: string;
 }) {
-  return prisma.dispatch.create({ data });
+  // Auto-generate challan number
+  const year = new Date().getFullYear();
+  const lastDispatch = await prisma.dispatch.findFirst({
+    where: { challanNo: { startsWith: `DC-${year}-` } },
+    orderBy: { challanNo: 'desc' },
+  });
+  let seq = 1;
+  if (lastDispatch?.challanNo) {
+    const parts = lastDispatch.challanNo.split('-');
+    seq = parseInt(parts[2]) + 1;
+  }
+  const challanNo = `DC-${year}-${String(seq).padStart(4, '0')}`;
+
+  return prisma.dispatch.create({
+    data: {
+      ...data,
+      challanNo,
+    },
+  });
 }
 
 export async function getRecentDispatches(limit = 5) {
@@ -41,6 +62,7 @@ export async function getRecentDispatches(limit = 5) {
     include: {
       job: { select: { id: true, description: true } },
       customer: { select: { name: true } },
+      dispatchedBy: { select: { id: true, name: true } },
     },
     orderBy: { dispatchDate: 'desc' },
     take: limit,

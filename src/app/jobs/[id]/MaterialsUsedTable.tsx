@@ -12,7 +12,8 @@ interface StockEntry {
   entryType: string;
   quantity: number;
   referenceNote: string;
-  loggedBy: string;
+  loggedById: number | null;
+  loggedBy: { id: number; name: string } | null;
   createdAt: Date | string;
   material: { id: number; name: string; unit: string };
 }
@@ -38,7 +39,7 @@ export default function MaterialsUsedTable({
   const [editEntryType, setEditEntryType] = useState<'outward' | 'wastage'>('outward');
   const [editQuantity, setEditQuantity] = useState('');
   const [editNotes, setEditNotes] = useState('');
-  const [editLoggedBy, setEditLoggedBy] = useState('');
+  const [editLoggedById, setEditLoggedById] = useState<number>(0);
   const [editSubmitting, setEditSubmitting] = useState(false);
 
   // Delete state
@@ -52,7 +53,7 @@ export default function MaterialsUsedTable({
     setEditEntryType(entry.entryType as 'outward' | 'wastage');
     setEditQuantity(String(entry.quantity));
     setEditNotes(entry.referenceNote);
-    setEditLoggedBy(entry.loggedBy);
+    setEditLoggedById(entry.loggedById || 0);
     setEditOpen(true);
   }
 
@@ -65,7 +66,7 @@ export default function MaterialsUsedTable({
     if (!editEntry) return;
     if (!editMaterialId) { toast.error('Please select a material'); return; }
     if (!editQuantity || parseFloat(editQuantity) <= 0) { toast.error('Please enter a valid quantity'); return; }
-    if (!editLoggedBy) { toast.error('Please select who logged this'); return; }
+    if (!editLoggedById) { toast.error('Please select who logged this'); return; }
 
     setEditSubmitting(true);
     const result = await updateStockEntryAction(editEntry.id, jobId, {
@@ -73,7 +74,7 @@ export default function MaterialsUsedTable({
       entryType: editEntryType,
       quantity: parseFloat(editQuantity),
       referenceNote: editNotes,
-      loggedBy: editLoggedBy,
+      loggedById: editLoggedById,
     });
     if (result.error) {
       toast.error(result.error);
@@ -124,7 +125,7 @@ export default function MaterialsUsedTable({
                   </span>
                 </td>
                 <td className="px-4 py-2">{entry.quantity} {entry.material.unit}</td>
-                <td className="px-4 py-2">{entry.loggedBy}</td>
+                <td className="px-4 py-2">{entry.loggedBy?.name || '—'}</td>
                 <td className="px-4 py-2">{formatDateTime(entry.createdAt)}</td>
                 <td className="px-4 py-2 text-gray-400">{entry.referenceNote}</td>
                 <td className="px-4 py-2">
@@ -228,13 +229,13 @@ export default function MaterialsUsedTable({
           <div>
             <label className="block text-sm font-medium mb-1">Logged By *</label>
             <select
-              value={editLoggedBy}
-              onChange={(e) => setEditLoggedBy(e.target.value)}
+              value={editLoggedById}
+              onChange={(e) => setEditLoggedById(parseInt(e.target.value))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             >
-              <option value="">Select person...</option>
+              <option value={0}>Select person...</option>
               {people.map((p) => (
-                <option key={p.id} value={p.name}>{p.name} ({p.role})</option>
+                <option key={p.id} value={p.id}>{p.name} ({p.role})</option>
               ))}
             </select>
           </div>

@@ -3,19 +3,23 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { createDispatchAction } from '@/lib/actions/dispatch-actions';
+import { getSession } from '@/lib/session';
 import Modal from '@/components/ui/Modal';
 import { formatJobId, formatDate } from '@/types';
+import WhatsAppShare from '@/components/ui/WhatsAppShare';
 
 interface DispatchRecord {
   id: number;
   quantityDispatched: number;
   unit: string;
   dispatchDate: Date;
+  challanNo: string;
   vehicleOrCourier: string;
   receivedBy: string;
   notes: string;
   job: { id: number; description: string; productType: string };
   customer: { id: number; name: string };
+  dispatchedBy: { id: number; name: string } | null;
 }
 
 interface ReadyJob {
@@ -27,19 +31,12 @@ interface ReadyJob {
   customer: { id: number; name: string };
 }
 
-interface Person { id: number; name: string; role: string; }
-interface Customer { id: number; name: string; }
-
 export default function DispatchPageClient({
   dispatches,
   readyJobs,
-  people: _people,
-  customers: _customers,
 }: {
   dispatches: DispatchRecord[];
   readyJobs: ReadyJob[];
-  people: Person[];
-  customers: Customer[];
 }) {
   const [open, setOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<ReadyJob | null>(null);
@@ -52,6 +49,11 @@ export default function DispatchPageClient({
     const fd = new FormData(e.currentTarget);
     fd.set('jobId', String(selectedJob.id));
     fd.set('customerId', String(selectedJob.customerId));
+    const session = getSession();
+    if (session) {
+      fd.set('factoryId', String(session.factoryId));
+      fd.set('dispatchedById', String(session.personId));
+    }
     const result = await createDispatchAction(fd);
     if (result.error) {
       toast.error(result.error);
@@ -88,6 +90,7 @@ export default function DispatchPageClient({
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 font-medium">Challan No</th>
               <th className="px-4 py-3 font-medium">Job ID</th>
               <th className="px-4 py-3 font-medium">Customer</th>
               <th className="px-4 py-3 font-medium">Qty Dispatched</th>
@@ -95,11 +98,13 @@ export default function DispatchPageClient({
               <th className="px-4 py-3 font-medium">Vehicle/Courier</th>
               <th className="px-4 py-3 font-medium">Received By</th>
               <th className="px-4 py-3 font-medium">Notes</th>
+              <th className="px-4 py-3 font-medium w-28">Actions</th>
             </tr>
           </thead>
           <tbody>
             {dispatches.map((d, i) => (
               <tr key={d.id} className={`border-t border-gray-100 ${i % 2 !== 0 ? 'bg-gray-50/50' : ''}`}>
+                <td className="px-4 py-2 font-mono text-xs">{d.challanNo || '—'}</td>
                 <td className="px-4 py-2 font-mono text-accent">{formatJobId(d.job.id)}</td>
                 <td className="px-4 py-2">{d.customer.name}</td>
                 <td className="px-4 py-2">{d.quantityDispatched} {d.unit}</td>
@@ -107,10 +112,28 @@ export default function DispatchPageClient({
                 <td className="px-4 py-2">{d.vehicleOrCourier || '—'}</td>
                 <td className="px-4 py-2">{d.receivedBy || '—'}</td>
                 <td className="px-4 py-2 text-gray-400">{d.notes || '—'}</td>
+                <td className="px-4 py-2">
+                  <div className="flex gap-1">
+                    {d.challanNo && (
+                      <a
+                        href={`/dispatch/${encodeURIComponent(d.challanNo)}/print`}
+                        target="_blank"
+                        className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                      >
+                        Print
+                      </a>
+                    )}
+                    <WhatsAppShare
+                      text={`Delivery Challan ${d.challanNo || ''}\nJob: ${formatJobId(d.job.id)}\nCustomer: ${d.customer.name}\nQty: ${d.quantityDispatched} ${d.unit}\nDate: ${formatDate(d.dispatchDate)}\nVehicle: ${d.vehicleOrCourier || 'N/A'}`}
+                      className="text-xs bg-green-50 text-green-600 px-2 py-1 rounded hover:bg-green-100 transition-colors"
+                      label="WhatsApp"
+                    />
+                  </div>
+                </td>
               </tr>
             ))}
             {dispatches.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">No dispatches yet</td></tr>
+              <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No dispatches yet</td></tr>
             )}
           </tbody>
         </table>

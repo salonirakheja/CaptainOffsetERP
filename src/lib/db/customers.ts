@@ -25,6 +25,9 @@ export async function createCustomer(data: {
   phone?: string;
   email?: string;
   address?: string;
+  gstin?: string;
+  state?: string;
+  factoryId: number;
 }) {
   return prisma.customer.create({ data });
 }
@@ -34,6 +37,8 @@ export async function updateCustomer(id: number, data: {
   phone?: string;
   email?: string;
   address?: string;
+  gstin?: string;
+  state?: string;
 }) {
   return prisma.customer.update({ where: { id }, data });
 }

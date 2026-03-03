@@ -8,12 +8,12 @@ import { createStockEntry, updateStockEntry, deleteStockEntry } from '@/lib/db/s
 export async function completeStageAction(
   jobId: number,
   stageName: string,
-  completedBy: string,
+  completedById: number,
   notes: string,
   nextStatus: string,
   materialUsage?: { materialId: number; quantity: number }[]
 ) {
-  await completeStage({ jobId, stageName, completedBy, notes });
+  await completeStage({ jobId, stageName, completedById, notes });
   await updateJobStatus(jobId, nextStatus);
 
   if (materialUsage && materialUsage.length > 0) {
@@ -24,7 +24,7 @@ export async function completeStageAction(
         quantity: usage.quantity,
         jobId,
         referenceNote: `Used at ${stageName} stage`,
-        loggedBy: completedBy,
+        loggedById: completedById,
       });
     }
   }
@@ -39,14 +39,14 @@ export async function completeStageAction(
 export async function updateStageAction(
   stageId: number,
   jobId: number,
-  completedBy: string,
+  completedById: number,
   notes: string
 ) {
-  if (!completedBy) {
+  if (!completedById) {
     return { error: 'Completed By is required.' };
   }
 
-  await updateStage(stageId, { completedBy, notes });
+  await updateStage(stageId, { completedById, notes });
   revalidatePath(`/jobs/${jobId}`);
   return { success: true };
 }
@@ -57,7 +57,7 @@ export async function logMaterialForJobAction(
   entryType: 'outward' | 'wastage',
   quantity: number,
   referenceNote: string,
-  loggedBy: string
+  loggedById: number
 ) {
   if (!materialId || !quantity || quantity <= 0) {
     return { error: 'Material and a positive quantity are required.' };
@@ -69,7 +69,7 @@ export async function logMaterialForJobAction(
     quantity,
     jobId,
     referenceNote,
-    loggedBy,
+    loggedById,
   });
 
   revalidatePath(`/jobs/${jobId}`);
@@ -86,7 +86,7 @@ export async function updateStockEntryAction(
     entryType: 'outward' | 'wastage';
     quantity: number;
     referenceNote: string;
-    loggedBy: string;
+    loggedById: number;
   }
 ) {
   if (!data.materialId || !data.quantity || data.quantity <= 0) {
@@ -98,7 +98,7 @@ export async function updateStockEntryAction(
     entryType: data.entryType,
     quantity: data.quantity,
     referenceNote: data.referenceNote,
-    loggedBy: data.loggedBy,
+    loggedById: data.loggedById,
   });
 
   revalidatePath(`/jobs/${jobId}`);

@@ -4,11 +4,19 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { completeStageAction, updateStageAction } from '@/lib/actions/production-actions';
 import { STAGE_LABELS } from '@/types';
+import { getPersonIdFromSession } from '@/lib/session';
 import Modal from '@/components/ui/Modal';
 
 interface Material { id: number; name: string; unit: string; currentStock: number; }
 interface Person { id: number; name: string; role: string; }
-interface StageRecord { id: number; stageName: string; completedAt: Date | null; completedBy: string; notes: string; }
+interface StageRecord {
+  id: number;
+  stageName: string;
+  completedAt: Date | null;
+  completedById: number | null;
+  completedBy: { id: number; name: string } | null;
+  notes: string;
+}
 
 interface Props {
   jobId: number;
@@ -24,7 +32,7 @@ interface Props {
 export default function ProductionPipeline({ jobId, productType, currentStatus, stages, completedStages, stageRecords, materials, people }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeStage, setActiveStage] = useState('');
-  const [completedBy, setCompletedBy] = useState('');
+  const [completedById, setCompletedById] = useState<number>(0);
   const [notes, setNotes] = useState('');
   const [materialUsage, setMaterialUsage] = useState<{ materialId: number; quantity: number }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -33,7 +41,7 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editStageId, setEditStageId] = useState(0);
   const [editStageName, setEditStageName] = useState('');
-  const [editCompletedBy, setEditCompletedBy] = useState('');
+  const [editCompletedById, setEditCompletedById] = useState<number>(0);
   const [editNotes, setEditNotes] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
 
@@ -45,7 +53,7 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
 
   function openMarkComplete(stage: string) {
     setActiveStage(stage);
-    setCompletedBy(typeof window !== 'undefined' ? localStorage.getItem('co_user') || '' : '');
+    setCompletedById(getPersonIdFromSession() || 0);
     setNotes('');
     setMaterialUsage(needsMaterialPrompt(stage) ? [{ materialId: 0, quantity: 0 }] : []);
     setModalOpen(true);
@@ -54,7 +62,7 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
   function openEditStage(record: StageRecord) {
     setEditStageId(record.id);
     setEditStageName(record.stageName);
-    setEditCompletedBy(record.completedBy);
+    setEditCompletedById(record.completedById || 0);
     setEditNotes(record.notes);
     setEditModalOpen(true);
   }
@@ -74,14 +82,14 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
   }
 
   async function handleComplete() {
-    if (!completedBy) { toast.error('Please select who completed this stage'); return; }
+    if (!completedById) { toast.error('Please select who completed this stage'); return; }
     setSubmitting(true);
 
     const nextStageIndex = stages.indexOf(activeStage) + 1;
     const nextStatus = nextStageIndex < stages.length ? stages[nextStageIndex] : 'dispatched';
     const validUsage = materialUsage.filter((m) => m.materialId > 0 && m.quantity > 0);
 
-    const result = await completeStageAction(jobId, activeStage, completedBy, notes, nextStatus, validUsage.length > 0 ? validUsage : undefined);
+    const result = await completeStageAction(jobId, activeStage, completedById, notes, nextStatus, validUsage.length > 0 ? validUsage : undefined);
     if (result.success) {
       toast.success(`Stage "${STAGE_LABELS[activeStage] || activeStage}" completed`);
       setModalOpen(false);
@@ -90,10 +98,10 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
   }
 
   async function handleEditSave() {
-    if (!editCompletedBy) { toast.error('Completed By is required'); return; }
+    if (!editCompletedById) { toast.error('Completed By is required'); return; }
     setEditSubmitting(true);
 
-    const result = await updateStageAction(editStageId, jobId, editCompletedBy, editNotes);
+    const result = await updateStageAction(editStageId, jobId, editCompletedById, editNotes);
     if (result.error) {
       toast.error(result.error);
     } else {
@@ -131,7 +139,7 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
                   </p>
                   {record && record.completedAt && (
                     <div className="flex items-center gap-1 mt-0.5">
-                      <p className="text-[10px] text-gray-400">{record.completedBy}</p>
+                      <p className="text-[10px] text-gray-400">{record.completedBy?.name || '—'}</p>
                       <button
                         onClick={() => openEditStage(record)}
                         className="md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-accent"
@@ -168,13 +176,13 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
           <div>
             <label className="block text-sm font-medium mb-1">Completed By *</label>
             <select
-              value={completedBy}
-              onChange={(e) => setCompletedBy(e.target.value)}
+              value={completedById}
+              onChange={(e) => setCompletedById(parseInt(e.target.value))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             >
-              <option value="">Select person...</option>
+              <option value={0}>Select person...</option>
               {people.map((p) => (
-                <option key={p.id} value={p.name}>{p.name} ({p.role})</option>
+                <option key={p.id} value={p.id}>{p.name} ({p.role})</option>
               ))}
             </select>
           </div>
@@ -248,13 +256,13 @@ export default function ProductionPipeline({ jobId, productType, currentStatus, 
           <div>
             <label className="block text-sm font-medium mb-1">Completed By *</label>
             <select
-              value={editCompletedBy}
-              onChange={(e) => setEditCompletedBy(e.target.value)}
+              value={editCompletedById}
+              onChange={(e) => setEditCompletedById(parseInt(e.target.value))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             >
-              <option value="">Select person...</option>
+              <option value={0}>Select person...</option>
               {people.map((p) => (
-                <option key={p.id} value={p.name}>{p.name} ({p.role})</option>
+                <option key={p.id} value={p.id}>{p.name} ({p.role})</option>
               ))}
             </select>
           </div>

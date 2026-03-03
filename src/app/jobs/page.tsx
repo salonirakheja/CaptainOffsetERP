@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getAllJobs } from '@/lib/db/jobs';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { formatJobId, formatDate } from '@/types';
+import { formatJobId, formatDate, PRIORITY_COLORS } from '@/types';
 import JobsFilter from './JobsFilter';
 
 export const dynamic = 'force-dynamic';
@@ -41,7 +41,7 @@ export default async function JobsPage({
               <th className="px-4 py-3 font-medium">Job ID</th>
               <th className="px-4 py-3 font-medium">Customer</th>
               <th className="px-4 py-3 font-medium">Product</th>
-              <th className="px-4 py-3 font-medium">Order Type</th>
+              <th className="px-4 py-3 font-medium">Priority</th>
               <th className="px-4 py-3 font-medium">Paper Type</th>
               <th className="px-4 py-3 font-medium">Qty</th>
               <th className="px-4 py-3 font-medium">Due Date</th>
@@ -58,7 +58,11 @@ export default async function JobsPage({
                 </td>
                 <td className="px-4 py-3">{job.customer.name}</td>
                 <td className="px-4 py-3 capitalize">{job.productType === 'box' ? 'Corrugated Box' : 'Printing'}</td>
-                <td className="px-4 py-3">{job.orderType === 'job_work' ? 'Job Work (A)' : 'CO Purchase (B)'}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${PRIORITY_COLORS[job.priority] || PRIORITY_COLORS.normal}`}>
+                    {job.priority}
+                  </span>
+                </td>
                 <td className="px-4 py-3">{job.paperType || '—'}</td>
                 <td className="px-4 py-3">{job.quantity} {job.unit}</td>
                 <td className="px-4 py-3">{formatDate(job.dueDate)}</td>

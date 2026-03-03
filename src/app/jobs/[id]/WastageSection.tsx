@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { logWastageAction } from '@/lib/actions/material-actions';
+import { getPersonIdFromSession } from '@/lib/session';
 import Modal from '@/components/ui/Modal';
 
 interface Material { id: number; name: string; unit: string; currentStock: number; }
@@ -17,6 +18,7 @@ export default function WastageSection({ jobId, materials, people }: { jobId: nu
     setSubmitting(true);
     const fd = new FormData(e.currentTarget);
     fd.set('jobId', String(jobId));
+    // loggedById is already in the form select
     const result = await logWastageAction(fd);
     if (result.error) {
       toast.error(result.error);
@@ -26,6 +28,8 @@ export default function WastageSection({ jobId, materials, people }: { jobId: nu
     }
     setSubmitting(false);
   }
+
+  const sessionPersonId = typeof window !== 'undefined' ? getPersonIdFromSession() : null;
 
   return (
     <div className="mb-6">
@@ -53,10 +57,10 @@ export default function WastageSection({ jobId, materials, people }: { jobId: nu
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Logged By *</label>
-            <select name="loggedBy" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <select name="loggedById" required defaultValue={sessionPersonId || ''} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
               <option value="">Select person...</option>
               {people.map((p) => (
-                <option key={p.id} value={p.name}>{p.name}</option>
+                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
           </div>

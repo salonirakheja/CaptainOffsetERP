@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { createJobAction } from '@/lib/actions/job-actions';
 import { createCustomerAction } from '@/lib/actions/customer-actions';
+import { getSession } from '@/lib/session';
 
 interface Customer { id: number; name: string; }
 
@@ -15,11 +16,14 @@ export default function NewJobForm({ customers: initialCustomers }: { customers:
   const [newCustomerName, setNewCustomerName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [productType, setProductType] = useState('');
 
   async function handleAddCustomer() {
     if (!newCustomerName.trim()) return;
     const fd = new FormData();
     fd.set('name', newCustomerName.trim());
+    const session = getSession();
+    if (session) fd.set('factoryId', String(session.factoryId));
     const result = await createCustomerAction(fd);
     if (result.success && result.customerId) {
       setCustomers([...customers, { id: result.customerId, name: newCustomerName.trim() }]);
@@ -46,6 +50,9 @@ export default function NewJobForm({ customers: initialCustomers }: { customers:
       setSubmitting(false);
       return;
     }
+
+    const session = getSession();
+    if (session) fd.set('factoryId', String(session.factoryId));
 
     const result = await createJobAction(fd);
     if (result.error) {
@@ -113,15 +120,25 @@ export default function NewJobForm({ customers: initialCustomers }: { customers:
           <label className="block text-sm font-medium mb-1">Product Type *</label>
           <div className="flex gap-4">
             <label className="flex items-center gap-2 text-sm">
-              <input type="radio" name="productType" value="printing" className="accent-accent" />
+              <input type="radio" name="productType" value="printing" className="accent-accent" onChange={() => setProductType('printing')} />
               Printing (Labels, packaging print)
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="radio" name="productType" value="box" className="accent-accent" />
+              <input type="radio" name="productType" value="box" className="accent-accent" onChange={() => setProductType('box')} />
               Corrugated Box (3-layer / 5-layer)
             </label>
           </div>
           {errors.productType && <p className="text-red-500 text-xs mt-1">{errors.productType}</p>}
+        </div>
+
+        {/* Priority */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Priority</label>
+          <select name="priority" defaultValue="normal" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="urgent">Urgent</option>
+            <option value="normal">Normal</option>
+            <option value="low">Low</option>
+          </select>
         </div>
 
         {/* Description */}
@@ -130,11 +147,99 @@ export default function NewJobForm({ customers: initialCustomers }: { customers:
           <textarea name="description" rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Job details, specifications..." />
         </div>
 
-        {/* Paper Type */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Paper Type</label>
-          <input type="text" name="paperType" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="e.g. 90GSM Art Paper, Duplex Board 300GSM" />
+        {/* Paper Type + GSM */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Paper Type</label>
+            <input type="text" name="paperType" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="e.g. Art Paper, Duplex Board" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">GSM</label>
+            <input type="number" name="gsm" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="e.g. 90, 130, 300" />
+          </div>
         </div>
+
+        {/* Size */}
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Width</label>
+            <input type="number" name="sizeWidth" step="any" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="0" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Height</label>
+            <input type="number" name="sizeHeight" step="any" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="0" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Unit</label>
+            <select name="sizeUnit" defaultValue="inch" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              <option value="inch">Inches</option>
+              <option value="cm">CM</option>
+              <option value="mm">MM</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Colors + Print Sides */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">No. of Colors</label>
+            <input type="number" name="numColors" min="1" max="8" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="e.g. 4" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Print Sides</label>
+            <select name="printSides" defaultValue="single" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              <option value="single">Single Side</option>
+              <option value="both">Both Sides</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Finish Type */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Finish Type</label>
+          <select name="finishType" defaultValue="" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="">None</option>
+            <option value="uv">UV Coating</option>
+            <option value="varnish">Varnish</option>
+            <option value="laminate_gloss">Laminate (Gloss)</option>
+            <option value="laminate_matt">Laminate (Matt)</option>
+            <option value="foil">Foil Stamping</option>
+            <option value="emboss">Embossing</option>
+          </select>
+        </div>
+
+        {/* Box-specific fields */}
+        {productType === 'box' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-4">
+            <p className="text-sm font-medium text-amber-800">Box Configuration</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Layers</label>
+                <select name="boxLayers" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Select...</option>
+                  <option value="3">3-Layer</option>
+                  <option value="5">5-Layer</option>
+                  <option value="7">7-Layer</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Board Type</label>
+                <input type="text" name="boxBoardType" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="e.g. Kraft, Duplex" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Flute Type</label>
+                <select name="fluteType" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Select...</option>
+                  <option value="A">A Flute</option>
+                  <option value="B">B Flute</option>
+                  <option value="C">C Flute</option>
+                  <option value="E">E Flute</option>
+                  <option value="F">F Flute</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quantity + Unit */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -157,6 +262,18 @@ export default function NewJobForm({ customers: initialCustomers }: { customers:
         <div>
           <label className="block text-sm font-medium mb-1">Due Date</label>
           <input type="date" name="dueDate" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+        </div>
+
+        {/* Estimated Cost + Quoted Rate */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Estimated Cost (₹)</label>
+            <input type="number" name="estimatedCost" step="0.01" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="0.00" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Quoted Rate (₹)</label>
+            <input type="number" name="quotedRate" step="0.01" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="0.00" />
+          </div>
         </div>
 
         {/* Notes */}

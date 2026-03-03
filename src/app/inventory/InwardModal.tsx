@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { logInwardAction } from '@/lib/actions/material-actions';
+import { getPersonIdFromSession } from '@/lib/session';
 import Modal from '@/components/ui/Modal';
 
 interface Material { id: number; name: string; unit: string; currentStock: number; }
@@ -15,7 +16,13 @@ export default function InwardModal({ materials }: { materials: Material[] }) {
     e.preventDefault();
     setSubmitting(true);
     const fd = new FormData(e.currentTarget);
-    fd.set('loggedBy', typeof window !== 'undefined' ? localStorage.getItem('co_user') || '' : '');
+    const personId = getPersonIdFromSession();
+    if (!personId) {
+      toast.error('Please log in first');
+      setSubmitting(false);
+      return;
+    }
+    fd.set('loggedById', String(personId));
     const result = await logInwardAction(fd);
     if (result.error) {
       toast.error(result.error);

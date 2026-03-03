@@ -3,6 +3,18 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  // Seed Factory
+  const factory = await prisma.factory.create({
+    data: {
+      name: 'Captain Offset Press',
+      code: 'CAPTOFF',
+      slug: 'captain-offset',
+      address: 'B-18, Sector-58, Noida',
+      phone: '',
+      gstin: '',
+    },
+  });
+
   // Seed Materials
   const materials = [
     { name: 'Art Paper 90GSM', category: 'paper', unit: 'reels', reorderLevel: 10 },
@@ -20,10 +32,27 @@ async function main() {
   ];
 
   for (const m of materials) {
-    await prisma.material.create({ data: m });
+    await prisma.material.create({ data: { ...m, factoryId: factory.id } });
   }
 
-  // Seed initial stock
+  // Seed People
+  const people = [
+    { name: 'Tiwari', role: 'dispatch', pin: '1234', phone: '' },
+    { name: 'Kamla P', role: 'production', pin: '1234', phone: '' },
+    { name: 'Bhagwandas', role: 'store', pin: '1234', phone: '' },
+    { name: 'Firoz', role: 'store', pin: '1234', phone: '' },
+    { name: 'J. Brar', role: 'production', pin: '1234', phone: '' },
+    { name: 'Security Guard', role: 'security', pin: '1234', phone: '' },
+  ];
+
+  const createdPeople: { id: number; name: string }[] = [];
+  for (const p of people) {
+    const person = await prisma.person.create({ data: { ...p, factoryId: factory.id } });
+    createdPeople.push(person);
+  }
+
+  // Seed initial stock — logged by first person (system)
+  const systemPerson = createdPeople[0];
   const allMaterials = await prisma.material.findMany();
   for (const m of allMaterials) {
     const qty = m.reorderLevel * 2;
@@ -32,35 +61,26 @@ async function main() {
         materialId: m.id,
         entryType: 'inward',
         quantity: qty,
+        balanceAfter: qty,
         referenceNote: 'Opening stock',
-        loggedBy: 'System',
+        loggedById: systemPerson.id,
       },
     });
-  }
-
-  // Seed People
-  const people = [
-    { name: 'Tiwari', role: 'dispatch' },
-    { name: 'Kamla P', role: 'production' },
-    { name: 'Bhagwandas', role: 'store' },
-    { name: 'Firoz', role: 'store' },
-    { name: 'J. Brar', role: 'production' },
-    { name: 'Security Guard', role: 'security' },
-  ];
-
-  for (const p of people) {
-    await prisma.person.create({ data: p });
+    await prisma.material.update({
+      where: { id: m.id },
+      data: { currentStock: qty },
+    });
   }
 
   // Seed sample customers
   await prisma.customer.create({
-    data: { name: 'Sharma Packaging', phone: '9876543210', address: 'Industrial Area, Phase 2' },
+    data: { name: 'Sharma Packaging', phone: '9876543210', address: 'Industrial Area, Phase 2', gstin: '', state: 'UP', factoryId: factory.id },
   });
   await prisma.customer.create({
-    data: { name: 'Delhi Labels Pvt Ltd', phone: '9812345678', email: 'orders@delhilabels.in', address: 'Naraina, New Delhi' },
+    data: { name: 'Delhi Labels Pvt Ltd', phone: '9812345678', email: 'orders@delhilabels.in', address: 'Naraina, New Delhi', gstin: '', state: 'Delhi', factoryId: factory.id },
   });
   await prisma.customer.create({
-    data: { name: 'Gupta Traders', phone: '9988776655', address: 'Sadar Bazaar' },
+    data: { name: 'Gupta Traders', phone: '9988776655', address: 'Sadar Bazaar', gstin: '', state: 'UP', factoryId: factory.id },
   });
 
   console.log('Seed data created successfully.');

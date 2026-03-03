@@ -29,15 +29,34 @@ export async function getJobById(id: number) {
     where: { id },
     include: {
       customer: true,
-      productionStages: { orderBy: { completedAt: 'asc' } },
-      stockLedgerEntries: { include: { material: true }, orderBy: { createdAt: 'desc' } },
-      dispatches: { orderBy: { createdAt: 'desc' } },
+      productionStages: {
+        include: {
+          completedBy: { select: { id: true, name: true } },
+          startedBy: { select: { id: true, name: true } },
+        },
+        orderBy: { completedAt: 'asc' },
+      },
+      stockLedgerEntries: {
+        include: {
+          material: true,
+          loggedBy: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      },
+      dispatches: {
+        include: {
+          dispatchedBy: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      },
+      jobMaterials: { include: { material: true } },
     },
   });
 }
 
 export async function createJob(data: {
   customerId: number;
+  factoryId: number;
   orderType: string;
   productType: string;
   description: string;
@@ -46,6 +65,19 @@ export async function createJob(data: {
   unit: string;
   dueDate: Date | null;
   notes: string;
+  priority?: string;
+  gsm?: number | null;
+  sizeWidth?: number | null;
+  sizeHeight?: number | null;
+  sizeUnit?: string;
+  numColors?: number | null;
+  printSides?: string;
+  finishType?: string | null;
+  boxLayers?: number | null;
+  boxBoardType?: string | null;
+  fluteType?: string | null;
+  estimatedCost?: number | null;
+  quotedRate?: number | null;
 }) {
   return prisma.job.create({ data });
 }

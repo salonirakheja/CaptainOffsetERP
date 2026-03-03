@@ -4,7 +4,7 @@ import { getJobById } from '@/lib/db/jobs';
 import { getAllMaterials } from '@/lib/db/materials';
 import { getActivePeople } from '@/lib/db/people';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { formatJobId, formatDate, formatDateTime, PRINTING_STAGES, BOX_STAGES } from '@/types';
+import { formatJobId, formatDate, formatDateTime, PRINTING_STAGES, BOX_STAGES, PRIORITY_COLORS } from '@/types';
 import ProductionPipeline from './ProductionPipeline';
 import LogMaterialModal from './LogMaterialModal';
 import MaterialsUsedTable from './MaterialsUsedTable';
@@ -12,6 +12,15 @@ import WastageSection from './WastageSection';
 import DispatchSection from './DispatchSection';
 
 export const dynamic = 'force-dynamic';
+
+const FINISH_LABELS: Record<string, string> = {
+  uv: 'UV Coating',
+  varnish: 'Varnish',
+  laminate_gloss: 'Laminate (Gloss)',
+  laminate_matt: 'Laminate (Matt)',
+  foil: 'Foil Stamping',
+  emboss: 'Embossing',
+};
 
 export default async function JobDetailPage({ params }: { params: { id: string } }) {
   const id = parseInt(params.id);
@@ -34,6 +43,11 @@ export default async function JobDetailPage({ params }: { params: { id: string }
         <Link href="/jobs" className="text-gray-400 hover:text-gray-600">&larr;</Link>
         <h1 className="text-2xl font-bold">{formatJobId(job.id)}</h1>
         <StatusBadge status={job.status} />
+        {job.priority !== 'normal' && (
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${PRIORITY_COLORS[job.priority] || ''}`}>
+            {job.priority}
+          </span>
+        )}
       </div>
 
       {/* Job Info */}
@@ -53,7 +67,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
           </div>
           <div>
             <span className="text-gray-500">Paper Type</span>
-            <p className="font-medium mt-0.5">{job.paperType || '—'}</p>
+            <p className="font-medium mt-0.5">{job.paperType || '—'}{job.gsm ? ` (${job.gsm} GSM)` : ''}</p>
           </div>
           <div>
             <span className="text-gray-500">Quantity</span>
@@ -63,6 +77,48 @@ export default async function JobDetailPage({ params }: { params: { id: string }
             <span className="text-gray-500">Due Date</span>
             <p className="font-medium mt-0.5">{formatDate(job.dueDate)}</p>
           </div>
+          {(job.sizeWidth || job.sizeHeight) && (
+            <div>
+              <span className="text-gray-500">Size</span>
+              <p className="font-medium mt-0.5">{job.sizeWidth} x {job.sizeHeight} {job.sizeUnit}</p>
+            </div>
+          )}
+          {job.numColors && (
+            <div>
+              <span className="text-gray-500">Colors</span>
+              <p className="font-medium mt-0.5">{job.numColors} color(s), {job.printSides === 'both' ? 'Both Sides' : 'Single Side'}</p>
+            </div>
+          )}
+          {job.finishType && (
+            <div>
+              <span className="text-gray-500">Finish</span>
+              <p className="font-medium mt-0.5">{FINISH_LABELS[job.finishType] || job.finishType}</p>
+            </div>
+          )}
+          {job.productType === 'box' && job.boxLayers && (
+            <>
+              <div>
+                <span className="text-gray-500">Box Config</span>
+                <p className="font-medium mt-0.5">{job.boxLayers}-Layer{job.fluteType ? `, ${job.fluteType} Flute` : ''}</p>
+              </div>
+              {job.boxBoardType && (
+                <div>
+                  <span className="text-gray-500">Board Type</span>
+                  <p className="font-medium mt-0.5">{job.boxBoardType}</p>
+                </div>
+              )}
+            </>
+          )}
+          {(job.estimatedCost || job.quotedRate) && (
+            <div>
+              <span className="text-gray-500">Cost / Rate</span>
+              <p className="font-medium mt-0.5">
+                {job.estimatedCost ? `Est: ₹${job.estimatedCost.toLocaleString('en-IN')}` : ''}
+                {job.estimatedCost && job.quotedRate ? ' / ' : ''}
+                {job.quotedRate ? `Quoted: ₹${job.quotedRate.toLocaleString('en-IN')}` : ''}
+              </p>
+            </div>
+          )}
           {job.description && (
             <div className="sm:col-span-2 md:col-span-3">
               <span className="text-gray-500">Description</span>
@@ -125,7 +181,6 @@ export default async function JobDetailPage({ params }: { params: { id: string }
         <DispatchSection
           job={job}
           dispatches={job.dispatches}
-          people={people}
         />
       )}
     </div>

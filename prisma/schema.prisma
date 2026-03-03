@@ -8,15 +8,66 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Customer {
-  id        Int        @id @default(autoincrement())
+model Factory {
+  id        Int      @id @default(autoincrement())
   name      String
-  phone     String     @default("")
-  email     String     @default("")
-  address   String     @default("")
-  createdAt DateTime   @default(now()) @map("created_at")
-  jobs      Job[]
+  code      String   @unique
+  slug      String   @unique
+  address   String   @default("")
+  phone     String   @default("")
+  gstin     String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  people       Person[]
+  customers    Customer[]
+  jobs         Job[]
+  materials    Material[]
+  dispatches   Dispatch[]
+  gateLogs     GateLog[]
+  quotations   Quotation[]
+  invoices     Invoice[]
+  activityLogs ActivityLog[]
+
+  @@map("factories")
+}
+
+model Person {
+  id        Int     @id @default(autoincrement())
+  name      String
+  role      String
+  active    Boolean @default(true)
+  pin       String  @default("1234")
+  phone     String  @default("")
+  factoryId Int     @map("factory_id")
+
+  factory          Factory           @relation(fields: [factoryId], references: [id])
+  stockEntries     StockLedger[]     @relation("LoggedByPerson")
+  completedStages  ProductionStage[] @relation("CompletedByPerson")
+  startedStages    ProductionStage[] @relation("StartedByPerson")
+  dispatches       Dispatch[]        @relation("DispatchedByPerson")
+  gateLogs         GateLog[]
+  quotations       Quotation[]
+  activityLogs     ActivityLog[]
+
+  @@map("people")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String   @default("")
+  email     String   @default("")
+  address   String   @default("")
+  gstin     String   @default("")
+  state     String   @default("")
+  factoryId Int      @map("factory_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  factory    Factory      @relation(fields: [factoryId], references: [id])
+  jobs       Job[]
   dispatches Dispatch[]
+  quotations Quotation[]
+  invoices   Invoice[]
 
   @@map("customers")
 }
@@ -24,6 +75,7 @@ model Customer {
 model Job {
   id          Int       @id @default(autoincrement())
   customerId  Int       @map("customer_id")
+  factoryId   Int       @map("factory_id")
   orderType   String    @map("order_type")
   productType String    @map("product_type")
   description String    @default("")
@@ -33,15 +85,47 @@ model Job {
   dueDate     DateTime? @map("due_date")
   status      String    @default("pending")
   notes       String    @default("")
+  priority    String    @default("normal")
+  gsm         Int?
+  sizeWidth   Float?    @map("size_width")
+  sizeHeight  Float?    @map("size_height")
+  sizeUnit    String    @default("inch") @map("size_unit")
+  numColors   Int?      @map("num_colors")
+  printSides  String    @default("single") @map("print_sides")
+  finishType  String?   @map("finish_type")
+  boxLayers   Int?      @map("box_layers")
+  boxBoardType String?  @map("box_board_type")
+  fluteType   String?   @map("flute_type")
+  estimatedCost Float?  @map("estimated_cost")
+  quotedRate    Float?  @map("quoted_rate")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   customer         Customer          @relation(fields: [customerId], references: [id])
+  factory          Factory           @relation(fields: [factoryId], references: [id])
   stockLedgerEntries StockLedger[]
   productionStages ProductionStage[]
   dispatches       Dispatch[]
+  jobMaterials     JobMaterial[]
+  quotation        Quotation?        @relation(fields: [quotationId], references: [id])
+  quotationId      Int?              @map("quotation_id")
 
   @@map("jobs")
+}
+
+model JobMaterial {
+  id         Int    @id @default(autoincrement())
+  jobId      Int    @map("job_id")
+  materialId Int    @map("material_id")
+  estimated  Float  @default(0)
+  actual     Float  @default(0)
+  wastage    Float  @default(0)
+
+  job      Job      @relation(fields: [jobId], references: [id])
+  material Material @relation(fields: [materialId], references: [id])
+
+  @@unique([jobId, materialId])
+  @@map("job_materials")
 }
 
 model Material {
@@ -50,9 +134,13 @@ model Material {
   category     String
   unit         String
   reorderLevel Float    @default(0) @map("reorder_level")
+  currentStock Float    @default(0) @map("current_stock")
+  factoryId    Int      @map("factory_id")
   createdAt    DateTime @default(now()) @map("created_at")
 
+  factory            Factory       @relation(fields: [factoryId], references: [id])
   stockLedgerEntries StockLedger[]
+  jobMaterials       JobMaterial[]
 
   @@map("materials")
 }
@@ -62,26 +150,31 @@ model StockLedger {
   materialId    Int      @map("material_id")
   entryType     String   @map("entry_type")
   quantity      Float
+  balanceAfter  Float    @default(0) @map("balance_after")
   jobId         Int?     @map("job_id")
   referenceNote String   @default("") @map("reference_note")
-  loggedBy      String   @default("") @map("logged_by")
+  loggedById    Int?     @map("logged_by_id")
   createdAt     DateTime @default(now()) @map("created_at")
 
   material Material @relation(fields: [materialId], references: [id])
   job      Job?     @relation(fields: [jobId], references: [id])
+  loggedBy Person?  @relation("LoggedByPerson", fields: [loggedById], references: [id])
 
   @@map("stock_ledger")
 }
 
 model ProductionStage {
-  id          Int       @id @default(autoincrement())
-  jobId       Int       @map("job_id")
-  stageName   String    @map("stage_name")
-  completedAt DateTime? @map("completed_at")
-  completedBy String    @default("") @map("completed_by")
-  notes       String    @default("")
+  id            Int       @id @default(autoincrement())
+  jobId         Int       @map("job_id")
+  stageName     String    @map("stage_name")
+  completedAt   DateTime? @map("completed_at")
+  completedById Int?      @map("completed_by_id")
+  startedById   Int?      @map("started_by_id")
+  notes         String    @default("")
 
-  job Job @relation(fields: [jobId], references: [id])
+  job         Job     @relation(fields: [jobId], references: [id])
+  completedBy Person? @relation("CompletedByPerson", fields: [completedById], references: [id])
+  startedBy   Person? @relation("StartedByPerson", fields: [startedById], references: [id])
 
   @@map("production_stages")
 }
@@ -90,25 +183,122 @@ model Dispatch {
   id                 Int      @id @default(autoincrement())
   jobId              Int      @map("job_id")
   customerId         Int      @map("customer_id")
+  factoryId          Int      @map("factory_id")
   quantityDispatched Float    @map("quantity_dispatched")
   unit               String   @default("pieces")
   dispatchDate       DateTime @default(now()) @map("dispatch_date")
+  challanNo          String   @default("") @map("challan_no")
   vehicleOrCourier   String   @default("") @map("vehicle_or_courier")
   receivedBy         String   @default("") @map("received_by")
+  dispatchedById     Int?     @map("dispatched_by_id")
   notes              String   @default("")
   createdAt          DateTime @default(now()) @map("created_at")
 
-  job      Job      @relation(fields: [jobId], references: [id])
-  customer Customer @relation(fields: [customerId], references: [id])
+  job          Job      @relation(fields: [jobId], references: [id])
+  customer     Customer @relation(fields: [customerId], references: [id])
+  factory      Factory  @relation(fields: [factoryId], references: [id])
+  dispatchedBy Person?  @relation("DispatchedByPerson", fields: [dispatchedById], references: [id])
 
   @@map("dispatches")
 }
 
-model Person {
-  id     Int     @id @default(autoincrement())
-  name   String
-  role   String
-  active Boolean @default(true)
+model GateLog {
+  id         Int       @id @default(autoincrement())
+  factoryId  Int       @map("factory_id")
+  entryType  String    @map("entry_type")
+  personName String    @map("person_name")
+  vehicle    String    @default("")
+  purpose    String    @default("")
+  material   String    @default("")
+  quantity   String    @default("")
+  entryTime  DateTime  @default(now()) @map("entry_time")
+  exitTime   DateTime? @map("exit_time")
+  loggedById Int       @map("logged_by_id")
+  notes      String    @default("")
 
-  @@map("people")
+  factory  Factory @relation(fields: [factoryId], references: [id])
+  loggedBy Person  @relation(fields: [loggedById], references: [id])
+
+  @@map("gate_logs")
+}
+
+model Quotation {
+  id           Int      @id @default(autoincrement())
+  quotationNo  String   @unique @map("quotation_no")
+  customerId   Int      @map("customer_id")
+  factoryId    Int      @map("factory_id")
+  items        String   @default("[]")
+  totalAmount  Float    @default(0) @map("total_amount")
+  status       String   @default("draft")
+  validUntil   DateTime? @map("valid_until")
+  notes        String   @default("")
+  createdById  Int      @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  customer  Customer @relation(fields: [customerId], references: [id])
+  factory   Factory  @relation(fields: [factoryId], references: [id])
+  createdBy Person   @relation(fields: [createdById], references: [id])
+  jobs      Job[]
+  invoices  Invoice[]
+
+  @@map("quotations")
+}
+
+model Invoice {
+  id           Int      @id @default(autoincrement())
+  invoiceNo    String   @unique @map("invoice_no")
+  customerId   Int      @map("customer_id")
+  factoryId    Int      @map("factory_id")
+  quotationId  Int?     @map("quotation_id")
+  subtotal     Float    @default(0)
+  cgst         Float    @default(0)
+  sgst         Float    @default(0)
+  igst         Float    @default(0)
+  totalAmount  Float    @default(0) @map("total_amount")
+  paidAmount   Float    @default(0) @map("paid_amount")
+  status       String   @default("unpaid")
+  dueDate      DateTime? @map("due_date")
+  notes        String   @default("")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  customer  Customer  @relation(fields: [customerId], references: [id])
+  factory   Factory   @relation(fields: [factoryId], references: [id])
+  quotation Quotation? @relation(fields: [quotationId], references: [id])
+  payments  Payment[]
+
+  @@map("invoices")
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  invoiceId Int      @map("invoice_id")
+  amount    Float
+  mode      String   @default("cash")
+  reference String   @default("")
+  paidAt    DateTime @default(now()) @map("paid_at")
+  notes     String   @default("")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("payments")
+}
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  factoryId  Int      @map("factory_id")
+  personId   Int      @map("person_id")
+  entityType String   @map("entity_type")
+  entityId   Int      @map("entity_id")
+  action     String
+  field      String   @default("")
+  oldValue   String   @default("")
+  newValue   String   @default("")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  factory Factory @relation(fields: [factoryId], references: [id])
+  person  Person  @relation(fields: [personId], references: [id])
+
+  @@map("activity_logs")
 }
